@@ -62,5 +62,7 @@ RecurringJob.AddOrUpdate<ProductUpdateJob>(
     Cron.Hourly
 );
 
+app.UseStaticFiles(); // علشان نقدر نعرض ملفات PDF من wwwroot
+
 app.MapControllers();
 app.Run();

@@ -113,5 +113,38 @@ namespace ProductManagement.API.Controllers
             await _cache.RemoveAsync("product_list");
             return NoContent();
         }
+
+        [HttpPost("{id}/upload-manual")]
+        public async Task<IActionResult> UploadManual(int id, IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("📂 يرجى رفع ملف PDF صالح.");
+
+            var product = await _unitOfWork.Products.GetByIdAsync(id);
+            if (product == null)
+                return NotFound("❌ المنتج غير موجود.");
+
+            // تحديد مسار الحفظ
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "pdf-manuals");
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            // حفظ الملف على السيرفر
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // تخزين المسار في SQL
+            product.ManualPdfPath = $"/pdf-manuals/{fileName}";
+            _unitOfWork.Products.Update(product);
+            await _unitOfWork.CompleteAsync();
+
+            return Ok(new { message = "✅ تم رفع ملف الـ PDF بنجاح", path = product.ManualPdfPath });
+        }
+
     }
 }

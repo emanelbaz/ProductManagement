@@ -17,12 +17,17 @@ namespace ProductManagement.API.Jobs
 
         public async Task RefreshProductsCache()
         {
+            // 1️⃣ جلب كل المنتجات من SQL
             var products = await _unitOfWork.Products.GetAllAsync();
-            var cacheOptions = new DistributedCacheEntryOptions
+
+            // 2️⃣ تحويل المنتجات لـ JSON
+            var jsonData = JsonSerializer.Serialize(products);
+
+            // 3️⃣ تخزينهم في Redis
+            await _cache.SetStringAsync("products_cache", jsonData, new DistributedCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
-            };
-            await _cache.SetStringAsync("product_list", JsonSerializer.Serialize(products), cacheOptions);
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1) // الكاش صالح لمدة ساعة
+            }); 
 
             Console.WriteLine($"[JOB] Products cache updated at {DateTime.Now}");
         }
